@@ -318,6 +318,7 @@ hr{border:0;border-top:1px solid var(--line);margin:1rem 0}
 .toast{background:var(--surface-3);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:.6rem .85rem;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.4);animation:tin .25s ease-out}
 @keyframes tin{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
 @media (max-width:600px){.lvl-num{font-size:3.2rem}.emblem{width:96px;height:86px}.stat b{font-size:1.45rem}h2.big{font-size:1.35rem}}
+@media (max-width:540px){.brand-t,.hdr-lbl{display:none}.top-in{gap:.35rem}}
 @media (prefers-reduced-motion: reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
 </style>
 </head>
@@ -326,12 +327,13 @@ hr{border:0;border-top:1px solid var(--line);margin:1rem 0}
 
 <header class="top">
   <div class="top-in">
-    <div class="brand"><svg viewBox="0 0 24 22" aria-hidden="true"><path d="M12 1 L23 21 H1 Z" fill="none" stroke="#E9B949" stroke-width="2.2" stroke-linejoin="round"/><path d="M8 17 V12 M12 17 V9 M16 17 V12" stroke="#E9B949" stroke-width="2"/></svg>LIFEREPLAY</div>
+    <div class="brand"><svg viewBox="0 0 24 22" aria-hidden="true"><path d="M12 1 L23 21 H1 Z" fill="none" stroke="#E9B949" stroke-width="2.2" stroke-linejoin="round"/><path d="M8 17 V12 M12 17 V9 M16 17 V12" stroke="#E9B949" stroke-width="2"/></svg><span class="brand-t">LIFEREPLAY</span></div>
     <button class="btn icon-btn" id="btnTheme" title="Cambiar a modo claro" aria-label="Cambiar a modo claro">☀️</button>
     <button class="btn icon-btn" id="btnVibe" aria-pressed="false" title="Fondo animado" aria-label="Fondo animado">✨</button>
     <button class="btn icon-btn" id="btnMusic" aria-pressed="false" title="Música" aria-label="Música">🎵</button>
     <button class="btn icon-btn" id="btnSound" aria-pressed="true" title="Efectos de sonido" aria-label="Efectos de sonido">🔊</button>
-    <button class="btn" id="btnAccount" hidden style="padding:.45rem .7rem;font-weight:700">👤 Entrar</button>
+    <button class="btn" id="btnAccount" hidden style="padding:.45rem .7rem;font-weight:700">👤<span class="hdr-lbl"> Entrar</span></button>
+    <button class="btn" id="btnLogout" hidden style="padding:.45rem .7rem;font-weight:700" title="Cerrar sesión" aria-label="Cerrar sesión">↪<span class="hdr-lbl"> Salir</span></button>
     <button class="btn icon-btn" id="btnSettings" title="Ajustes" aria-label="Ajustes">⚙️</button>
   </div>
 </header>
@@ -1429,9 +1431,10 @@ async function cloudLoad(){
 }
 function renderAccount(){
   const b=$("#btnAccount");if(!b)return;
-  b.hidden=!sb;if(!sb)return;
-  if(!sbUser){b.textContent="👤 Entrar";b.title="Entra para guardar en la nube"}
-  else{b.textContent=cloudStatus==="error"?"⚠️ Nube":cloudStatus==="saving"||cloudStatus==="loading"||cloudStatus==="pending"?"☁️ …":"☁️ Guardado";b.title=sbUser.email||""}
+  b.hidden=!sb;$("#btnLogout").hidden=!(sb&&sbUser);if(!sb)return;
+  const lbl=(i,t)=>`${i}<span class="hdr-lbl"> ${t}</span>`;
+  if(!sbUser){b.innerHTML=lbl("👤","Entrar");b.title="Entra para guardar en la nube"}
+  else{b.innerHTML=cloudStatus==="error"?lbl("⚠️","Nube"):cloudStatus==="saving"||cloudStatus==="loading"||cloudStatus==="pending"?lbl("☁️","…"):lbl("☁️","Guardado");b.title=sbUser.email||""}
   $("#accOut").hidden=!!sbUser;$("#accIn").hidden=!sbUser;
   if(sbUser){
     $("#accWho").textContent=sbUser.email||"tu cuenta";
@@ -1479,14 +1482,16 @@ $("#accSignIn").addEventListener("click",()=>doAuth("in"));
 $("#accSignUp").addEventListener("click",()=>doAuth("up"));
 $("#accPass").addEventListener("keydown",e=>{if(e.key==="Enter")doAuth("in")});
 $("#accSync").addEventListener("click",async()=>{await cloudLoad();toast(cloudStatus==="error"?"No se pudo sincronizar":"☁️ Sincronizado")});
-$("#accSignOut").addEventListener("click",async()=>{
+async function signOut(){
   if(!(await ask("Tu progreso queda guardado en la nube. En este navegador se borra para que nadie más lo vea.","Sí, cerrar sesión","¿Cerrar sesión?")))return;
   clearTimeout(cloudTimer);if(cloudStatus==="pending")await cloudSave();
   try{await sb.auth.signOut()}catch(e){}
   const p=state.prefs;state=freshState();state.prefs={...p,music:false};
   try{localStorage.removeItem(LS_KEY)}catch(e){}
-  $("#dlgAccount").close();renderAll();toast("Sesión cerrada");
-});
+  if($("#dlgAccount").open)$("#dlgAccount").close();renderAll();toast("Sesión cerrada");
+}
+$("#accSignOut").addEventListener("click",signOut);
+$("#btnLogout").addEventListener("click",signOut);
 
 /* ---------- Arranque ---------- */
 syncMissions();checkAchievements(true);renderAll();state.prefs.music=false;
