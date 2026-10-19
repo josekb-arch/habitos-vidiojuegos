@@ -329,6 +329,7 @@ hr{border:0;border-top:1px solid var(--line);margin:1rem 0}
     <button class="btn icon-btn" id="btnVibe" aria-pressed="false" title="Fondo animado" aria-label="Fondo animado">✨</button>
     <button class="btn icon-btn" id="btnMusic" aria-pressed="false" title="Música" aria-label="Música">🎵</button>
     <button class="btn icon-btn" id="btnSound" aria-pressed="true" title="Efectos de sonido" aria-label="Efectos de sonido">🔊</button>
+    <button class="btn" id="btnAccount" hidden style="padding:.45rem .7rem;font-weight:700">👤 Entrar</button>
     <button class="btn icon-btn" id="btnSettings" title="Ajustes" aria-label="Ajustes">⚙️</button>
   </div>
 </header>
@@ -609,6 +610,22 @@ hr{border:0;border-top:1px solid var(--line);margin:1rem 0}
   <div class="row between"><button class="btn danger" id="btnReset">Reiniciar progreso</button><button class="btn" data-close>Cerrar</button></div>
 </dialog>
 
+<dialog id="dlgAccount">
+  <h3>Tu cuenta</h3>
+  <div id="accOut">
+    <p class="note" style="margin-top:-.3rem">Entra para guardar tu progreso en la nube y verlo igual en tu celular y en tu compu.</p>
+    <label class="f" for="accEmail">Correo</label><input class="in" id="accEmail" type="email" autocomplete="email" placeholder="tu@correo.com">
+    <label class="f" for="accPass">Contraseña</label><input class="in" id="accPass" type="password" autocomplete="current-password" placeholder="mínimo 6 caracteres">
+    <p class="note" id="accMsg" hidden style="margin:.7rem 0 0"></p>
+    <div class="row end" style="margin-top:1rem"><button class="btn ghost" data-close>Cerrar</button><button class="btn" id="accSignUp">Crear cuenta</button><button class="btn gold" id="accSignIn">Entrar</button></div>
+  </div>
+  <div id="accIn" hidden>
+    <p style="margin-top:0">Sesión iniciada como <b id="accWho"></b></p>
+    <p class="note" id="accStatus"></p>
+    <div class="row between" style="margin-top:1rem"><button class="btn danger" id="accSignOut">Cerrar sesión</button><div class="row"><button class="btn" id="accSync">Sincronizar ahora</button><button class="btn" data-close>Cerrar</button></div></div>
+  </div>
+</dialog>
+
 <dialog id="dlgConfirm">
   <h3 id="cTitle">¿Seguro?</h3>
   <p id="cMsg" style="margin:0"></p>
@@ -622,7 +639,18 @@ hr{border:0;border-top:1px solid var(--line);margin:1rem 0}
 <div id="tip" hidden></div>
 <div id="toast" aria-live="polite"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
+/* =====================================================================
+   BASE DE DATOS (Supabase)
+   Pega aquí los dos datos de tu proyecto de Supabase.
+   Los encuentras en Project Settings → API (o Data API / API Keys).
+   Si los dejas así, la app funciona solo con el guardado del navegador.
+   ===================================================================== */
+const SUPABASE_URL="https://zspcgoznegmvkiutqxdr.supabase.co";
+const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzcGNnb3puZWdtdmtpdXRxeGRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzNzcxMjQsImV4cCI6MjEwNzk1MzEyNH0.pnOXfcLtoV9E-EifREhYRESEXRI0c8E-Hb59CN7RB3M";
+const SB_TABLE="lifereplay_saves";
+
 /* ---------- Datos base ---------- */
 const PALETTE=["#F87171","#A78BFA","#34D399","#F59E0B","#38BDF8","#F472B6","#FACC15","#94A3B8"];
 const DEFAULT_PILLARS=[
@@ -696,6 +724,7 @@ function persist(){
   state.updatedAt=Date.now();today().xpTotal=state.xp;
   try{localStorage.setItem(LS_KEY,JSON.stringify(state))}catch(e){}
   clearTimeout(saveTimer);saveTimer=setTimeout(flush,700);
+  if(sbUser){clearTimeout(cloudTimer);cloudTimer=setTimeout(cloudSave,1200);setCloud("pending")}
 }
 async function flush(){
   if(!docRef)return;
@@ -1334,7 +1363,7 @@ $("#avatars").addEventListener("click",e=>{const b=e.target.closest("[data-av]")
 let downloads=null;
 $("#btnExport").addEventListener("click",async()=>{const data=JSON.stringify(state,null,2);if(downloads){try{await downloads.save({filename:`lifereplay-${dayKey()}.json`,data});toast("Respaldo descargado");return}catch(e){}}const box=$("#exportBox");box.hidden=false;box.value=data;box.select();toast("Copia este texto y guárdalo")});
 $("#btnImport").addEventListener("click",()=>$("#fileImport").click());
-$("#fileImport").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;try{const s=JSON.parse(await f.text());if(typeof s.xp!=="number"||!s.log)throw 0;if(!(await ask("Esto reemplaza tu progreso actual con el del respaldo.","Sí, cargar respaldo","¿Cargar respaldo?")))return;state=migrate(s);persist();renderAll();toast("Respaldo cargado");$("#dlgSettings").close()}catch(err){toast("Ese archivo no es un respaldo válido de LifeReplay")}e.target.value=""});
+$("#fileImport").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;try{const s=JSON.parse(await f.text());if(typeof s.xp!=="number"||!s.log)throw 0;if(!(await ask("Esto reemplaza tu progreso actual con el del respaldo.","Sí, cargar respaldo","¿Cargar respaldo?")))return;state=migrate(s);state.owner=sbUser?sbUser.id:undefined;persist();renderAll();toast("Respaldo cargado");$("#dlgSettings").close()}catch(err){toast("Ese archivo no es un respaldo válido de LifeReplay")}e.target.value=""});
 
 $("#btnAdmin").addEventListener("click",()=>{$("#pin").value="";$("#pinErr").hidden=true;$("#dlgSettings").close();$("#dlgPin").showModal();setTimeout(()=>$("#pin").focus(),50)});
 function tryPin(){if($("#pin").value===ADMIN_PIN){$("#dlgPin").close();openAdmin()}else{$("#pinErr").hidden=false;$("#pin").select()}}
@@ -1345,19 +1374,114 @@ $("#adminBadges").addEventListener("change",e=>{const id=e.target.dataset.ach;if
 $("#btnUnlockAll").addEventListener("click",()=>{ACH.forEach(a=>{if(!state.achievements[a.id])state.achievements[a.id]=Date.now()});persist();renderAll();openAdmin();sfx("badge");toast("Todos los logros desbloqueados")});
 async function resetProgress(){
   if(!(await ask("Se borra todo: nivel, XP, historial, misiones diarias, meta y destino, acciones personalizadas, pilares, logros y diario. No se puede deshacer.","Sí, borrar todo","¿Reiniciar todo tu progreso?")))return false;
-  const p=state.prefs;state=freshState();state.prefs={...p,music:false};
+  const p=state.prefs;state=freshState();state.prefs={...p,music:false};if(sbUser)state.owner=sbUser.id;
   try{localStorage.removeItem(LS_KEY)}catch(e){}
   ui.histDay=dayKey();ui.calDay=dayKey();ui.misP="";ui.mis="all";ui.cal=new Date(new Date().getFullYear(),new Date().getMonth(),1);
   document.querySelectorAll("#segMis button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v==="all"));
   $("#diaryText").value="";$("#hud").classList.remove("on");
-  persist();clearTimeout(saveTimer);await flush();
+  persist();clearTimeout(saveTimer);await flush();clearTimeout(cloudTimer);await cloudSave();
   renderAll();toast("Progreso reiniciado. ¡Nivel 1 otra vez!");return true;
 }
 $("#btnReset").addEventListener("click",async()=>{if(await resetProgress())$("#dlgAdmin").close()});
 $("#btnReset2").addEventListener("click",async()=>{if(await resetProgress())$("#dlgSettings").close()});
 
+
+/* ---------- Nube (Supabase): sincroniza tu progreso entre dispositivos ---------- */
+let sb=null,sbUser=null,cloudTimer=null,cloudBusy=false,cloudAgain=false,cloudStatus="off";
+function setCloud(s){cloudStatus=s;renderAccount()}
+async function cloudSave(){
+  if(!sb||!sbUser)return;
+  if(cloudBusy){cloudAgain=true;return}
+  cloudBusy=true;setCloud("saving");
+  state.owner=sbUser.id;
+  let ok=false;
+  try{const{error}=await sb.from(SB_TABLE).upsert({user_id:sbUser.id,state:JSON.parse(JSON.stringify(state)),updated_at:new Date().toISOString()});ok=!error;if(error)console.warn("Supabase:",error.message)}catch(e){console.warn(e)}
+  cloudBusy=false;setCloud(ok?"saved":"error");
+  if(cloudAgain){cloudAgain=false;cloudSave()}
+}
+async function cloudLoad(){
+  if(!sb||!sbUser)return;
+  setCloud("loading");
+  let remote=null;
+  try{const{data,error}=await sb.from(SB_TABLE).select("state").eq("user_id",sbUser.id).maybeSingle();if(error)throw error;remote=data&&data.state}
+  catch(e){console.warn("Supabase:",e.message||e);setCloud("error");return}
+  const foreign=state.owner&&state.owner!==sbUser.id;
+  const keepPrefs=p=>({...state.prefs,vibe:p.vibe,sound:p.sound,music:false});
+  if(remote&&(foreign||(remote.updatedAt||0)>(state.updatedAt||0))){
+    const p=state.prefs;state=migrate(remote);state.prefs=keepPrefs(p);state.owner=sbUser.id;
+    try{localStorage.setItem(LS_KEY,JSON.stringify(state))}catch(e){}
+    syncMissions();checkAchievements(true);renderAll();setCloud("saved");
+    if(!(remote.v>=3))persist();
+  }else if(!remote&&foreign){
+    const p=state.prefs;state=freshState();state.prefs=p;state.owner=sbUser.id;persist();renderAll();await cloudSave();
+  }else if(!remote||(state.updatedAt||0)>(remote.updatedAt||0)){
+    await cloudSave(); // primera vez o cambios hechos sin internet: sube lo de este navegador
+  }else setCloud("saved");
+}
+function renderAccount(){
+  const b=$("#btnAccount");if(!b)return;
+  b.hidden=!sb;if(!sb)return;
+  if(!sbUser){b.textContent="👤 Entrar";b.title="Entra para guardar en la nube"}
+  else{b.textContent=cloudStatus==="error"?"⚠️ Nube":cloudStatus==="saving"||cloudStatus==="loading"||cloudStatus==="pending"?"☁️ …":"☁️ Guardado";b.title=sbUser.email||""}
+  $("#accOut").hidden=!!sbUser;$("#accIn").hidden=!sbUser;
+  if(sbUser){
+    $("#accWho").textContent=sbUser.email||"tu cuenta";
+    $("#accStatus").textContent={saved:"☁️ Todo está guardado en la nube.",saving:"Guardando en la nube…",pending:"Hay cambios por guardar…",loading:"Cargando tu progreso…",error:"No se pudo sincronizar. Revisa tu conexión; tus cambios siguen guardados en este navegador y se subirán después.",off:""}[cloudStatus]||"";
+  }
+}
+function accMsg(t,bad){const m=$("#accMsg");m.hidden=!t;m.textContent=t||"";m.style.color=bad?"var(--coral)":"var(--mint)"}
+function authError(e){const m=(e&&e.message||"").toLowerCase();
+  if(m.includes("invalid login"))return"Correo o contraseña incorrectos.";
+  if(m.includes("not confirmed"))return"Primero confirma tu correo con el enlace que te enviamos.";
+  if(m.includes("already registered")||m.includes("already been registered"))return"Ese correo ya tiene cuenta. Usa Entrar.";
+  if(m.includes("password"))return"La contraseña debe tener al menos 6 caracteres.";
+  if(m.includes("email"))return"Revisa que el correo esté bien escrito.";
+  return"No se pudo conectar. Revisa tu internet e intenta de nuevo.";}
+function initCloud(){
+  try{
+    if(!window.supabase||!/^https:\/\//.test(SUPABASE_URL)||SUPABASE_ANON_KEY.length<30)return;
+    sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+    sb.auth.onAuthStateChange((ev,session)=>{
+      const u=session&&session.user||null,changed=(u&&u.id)!==(sbUser&&sbUser.id);
+      sbUser=u;
+      if(u&&changed)setTimeout(cloudLoad,0);
+      if(!u)cloudStatus="off";
+      renderAccount();
+    });
+    renderAccount();
+    document.addEventListener("visibilitychange",()=>{if(!document.hidden&&sbUser&&!cloudBusy)cloudLoad()});
+    addEventListener("online",()=>{if(sbUser)cloudSave()});
+  }catch(e){sb=null;console.warn(e)}
+}
+$("#btnAccount").addEventListener("click",()=>{accMsg("");renderAccount();$("#dlgAccount").showModal()});
+async function doAuth(kind){
+  const email=$("#accEmail").value.trim(),password=$("#accPass").value;
+  if(!email){$("#accEmail").focus();return}if(password.length<6){accMsg("La contraseña debe tener al menos 6 caracteres.",true);$("#accPass").focus();return}
+  $("#accSignIn").disabled=$("#accSignUp").disabled=true;accMsg(kind==="in"?"Entrando…":"Creando tu cuenta…");
+  try{
+    if(kind==="in"){const{error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;accMsg("");$("#dlgAccount").close();toast("☁️ Sesión iniciada. Tu progreso se guarda en la nube.")}
+    else{const{data,error}=await sb.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname}});if(error)throw error;
+      if(data&&data.session){$("#dlgAccount").close();toast("☁️ Cuenta creada. Tu progreso ya está en la nube.")}
+      else accMsg("Listo. Te enviamos un correo para confirmar tu cuenta: ábrelo y luego vuelve aquí y toca Entrar.")}
+  }catch(e){accMsg(authError(e),true)}
+  finally{$("#accSignIn").disabled=$("#accSignUp").disabled=false}
+}
+$("#accSignIn").addEventListener("click",()=>doAuth("in"));
+$("#accSignUp").addEventListener("click",()=>doAuth("up"));
+$("#accPass").addEventListener("keydown",e=>{if(e.key==="Enter")doAuth("in")});
+$("#accSync").addEventListener("click",async()=>{await cloudLoad();toast(cloudStatus==="error"?"No se pudo sincronizar":"☁️ Sincronizado")});
+$("#accSignOut").addEventListener("click",async()=>{
+  if(!(await ask("Tu progreso queda guardado en la nube. En este navegador se borra para que nadie más lo vea.","Sí, cerrar sesión","¿Cerrar sesión?")))return;
+  clearTimeout(cloudTimer);if(cloudStatus==="pending")await cloudSave();
+  try{await sb.auth.signOut()}catch(e){}
+  const p=state.prefs;state=freshState();state.prefs={...p,music:false};
+  try{localStorage.removeItem(LS_KEY)}catch(e){}
+  $("#dlgAccount").close();renderAll();toast("Sesión cerrada");
+});
+
 /* ---------- Arranque ---------- */
 syncMissions();checkAchievements(true);renderAll();state.prefs.music=false;
+initCloud();
 (async()=>{
   if(!window.claude||!claude.use)return;
   claude.use("sample").then(s=>{if(s){sample=s;$("#btnStory").hidden=false}}).catch(()=>{});
