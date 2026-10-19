@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>LifeReplay</title>
+<script>try{var s=JSON.parse(localStorage.getItem("lifereplay-v1")||"{}");document.documentElement.setAttribute("data-theme",s.prefs&&s.prefs.theme==="light"?"light":"dark")}catch(e){document.documentElement.setAttribute("data-theme","dark")}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -326,6 +327,7 @@ hr{border:0;border-top:1px solid var(--line);margin:1rem 0}
 <header class="top">
   <div class="top-in">
     <div class="brand"><svg viewBox="0 0 24 22" aria-hidden="true"><path d="M12 1 L23 21 H1 Z" fill="none" stroke="#E9B949" stroke-width="2.2" stroke-linejoin="round"/><path d="M8 17 V12 M12 17 V9 M16 17 V12" stroke="#E9B949" stroke-width="2"/></svg>LIFEREPLAY</div>
+    <button class="btn icon-btn" id="btnTheme" title="Cambiar a modo claro" aria-label="Cambiar a modo claro">☀️</button>
     <button class="btn icon-btn" id="btnVibe" aria-pressed="false" title="Fondo animado" aria-label="Fondo animado">✨</button>
     <button class="btn icon-btn" id="btnMusic" aria-pressed="false" title="Música" aria-label="Música">🎵</button>
     <button class="btn icon-btn" id="btnSound" aria-pressed="true" title="Efectos de sonido" aria-label="Efectos de sonido">🔊</button>
@@ -743,7 +745,7 @@ function pillarTotals(keys){const t={};for(const k of keys||Object.keys(state.lo
 function typeTotals(keys){const t={};for(const k of keys||Object.keys(state.log)){const d=state.log[k];if(!d||!d.tx)continue;for(const[p,v]of Object.entries(d.tx))t[p]=(t[p]||0)+v}return t}
 const segBlocks=(pct,n=5)=>{const on=Math.round(pct/100*n);return"■".repeat(on)+"□".repeat(n-on)};
 function segBarHtml(pct,color,n=10){const on=Math.round(pct/100*n);return`<span class="segbar">${[...Array(n)].map((_,i)=>`<i style="${i<on?`background:${color}`:""}"></i>`).join("")}</span>`}
-function pchip(id){const p=pillarById(id);return`<span class="pchip" style="background:color-mix(in srgb,${p.color} 18%,transparent);color:${p.color}">${esc(p.emoji)} ${esc(p.name)}</span>`}
+function pchip(id){const p=pillarById(id);return`<span class="pchip" style="background:color-mix(in srgb,${p.color} 18%,transparent);color:color-mix(in srgb,${p.color} 72%,var(--ink))">${esc(p.emoji)} ${esc(p.name)}</span>`}
 
 function today(){const k=dayKey();if(!state.log[k])state.log[k]={counts:{},xp:0};return state.log[k]}
 function countFor(day,id){return(day&&day.counts&&day.counts[id])||0}
@@ -985,7 +987,7 @@ function placeTip(e){const r=tip.getBoundingClientRect();let x=e.clientX+14,y=e.
 addEventListener("scroll",()=>{tip.hidden=true},{passive:true});
 
 /* ---------- HUD ---------- */
-function hudHtml(id){const p=pillarById(id),xp=pillarTotals()[id]||0,L=levelInfo(xp),pct=Math.floor(L.into/L.need*100);return`<span>${esc(p.emoji)}</span><span class="pn" style="color:${p.color}">${esc(p.name)}</span><span class="open">OPEN</span><span class="lv">Nivel ${L.lvl}</span><span class="blocks" style="color:${p.color}">[${segBlocks(pct)}]</span><span>${pct}%</span>`}
+function hudHtml(id){const p=pillarById(id),xp=pillarTotals()[id]||0,L=levelInfo(xp),pct=Math.floor(L.into/L.need*100);return`<span>${esc(p.emoji)}</span><span class="pn" style="color:color-mix(in srgb,${p.color} 72%,var(--ink))">${esc(p.name)}</span><span class="open">OPEN</span><span class="lv">Nivel ${L.lvl}</span><span class="blocks" style="color:${p.color}">[${segBlocks(pct)}]</span><span>${pct}%</span>`}
 let hudT=null;
 function hud(id){const h=$("#hud");h.innerHTML=hudHtml(id);h.classList.add("on");clearTimeout(hudT);hudT=setTimeout(()=>h.classList.remove("on"),2200)}
 
@@ -1170,7 +1172,13 @@ function renderHistory(){
 function openHistory(k){ui.histDay=k;showTab("hist")}
 
 function renderAll(animate){renderHero(animate);renderMissions();renderActions();renderFeed();renderMisTable();renderJournal();renderPrefs();renderDashboard();renderCalendar();renderHistory()}
-function renderPrefs(){$("#btnVibe").setAttribute("aria-pressed",state.prefs.vibe);$("#btnMusic").setAttribute("aria-pressed",!!(state.prefs.music&&musicOn));$("#btnSound").setAttribute("aria-pressed",state.prefs.sound);$("#btnSound").textContent=state.prefs.sound?"🔊":"🔇";$("#vibe").style.display=state.prefs.vibe?"block":"none"}
+function applyTheme(){
+  const t=state.prefs.theme==="light"?"light":"dark";
+  document.documentElement.setAttribute("data-theme",t);
+  const b=$("#btnTheme"),label=t==="light"?"Cambiar a modo oscuro":"Cambiar a modo claro";
+  b.textContent=t==="light"?"🌙":"☀️";b.title=label;b.setAttribute("aria-label",label);
+}
+function renderPrefs(){applyTheme();$("#btnVibe").setAttribute("aria-pressed",state.prefs.vibe);$("#btnMusic").setAttribute("aria-pressed",!!(state.prefs.music&&musicOn));$("#btnSound").setAttribute("aria-pressed",state.prefs.sound);$("#btnSound").textContent=state.prefs.sound?"🔊":"🔇";$("#vibe").style.display=state.prefs.vibe?"block":"none"}
 function showTab(name){document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===name));document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("on",p.id==="p-"+name));tip.hidden=true;renderDashboard();renderCalendar();renderHistory()}
 
 /* ---------- Toast y sonido ---------- */
@@ -1348,6 +1356,7 @@ $("#btnUndo").addEventListener("click",undo);
 $("#btnSaveDiary").addEventListener("click",()=>{const t=$("#diaryText").value.trim();if(!t){toast("Escribe algo de tu día primero");return}saveEntry(t,"")});
 $("#btnStory").addEventListener("click",makeStory);
 $("#btnStop").addEventListener("click",()=>storyCtl&&storyCtl.abort());
+$("#btnTheme").addEventListener("click",()=>{state.prefs.theme=state.prefs.theme==="light"?"dark":"light";persist();applyTheme();tip.hidden=true;renderDashboard();renderHero()});
 $("#btnVibe").addEventListener("click",()=>{state.prefs.vibe=!state.prefs.vibe;persist();renderPrefs()});
 $("#btnSound").addEventListener("click",()=>{state.prefs.sound=!state.prefs.sound;persist();renderPrefs();if(state.prefs.sound)sfx("xp")});
 $("#btnMusic").addEventListener("click",()=>{if(musicOn){stopMusic();state.prefs.music=false}else{startMusic();state.prefs.music=true}persist();renderPrefs()});
