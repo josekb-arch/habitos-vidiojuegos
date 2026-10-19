@@ -586,7 +586,7 @@ hr{border:0;border-top:1px solid var(--line);margin:1rem 0}
   <label class="f" for="addName">Nombre</label><input class="in" id="addName" maxlength="20" placeholder="Leer">
   <div class="two">
     <div><label class="f" for="addEmoji">Emoji</label><input class="in" id="addEmoji" maxlength="4" placeholder="📚"></div>
-    <div><label class="f" for="addXp" id="addXpLbl">XP por vez</label><input class="in" id="addXp" type="number" min="1" max="200" value="10"></div>
+    <div><label class="f" for="addXp" id="addXpLbl">XP por vez</label><input class="in" id="addXp" type="number" min="1" value="10"></div>
   </div>
   <label class="f" for="addPillar">Pilar</label><select class="in" id="addPillar"></select>
   <div class="row end" style="margin-top:1rem"><button class="btn ghost" data-close>Cancelar</button><button class="btn gold" id="btnAddOk">Agregar</button></div>
@@ -604,6 +604,10 @@ hr{border:0;border-top:1px solid var(--line);margin:1rem 0}
   <p class="note" style="margin:0 0 .5rem">Tu progreso se guarda solo, pero puedes bajar un respaldo por si cambias de dispositivo.</p>
   <div class="row"><button class="btn" id="btnExport">⬇ Descargar respaldo</button><button class="btn" id="btnImport">⬆ Cargar respaldo</button><input type="file" id="fileImport" accept="application/json,.json" hidden></div>
   <textarea id="exportBox" hidden readonly style="margin-top:.6rem;min-height:90px;font-size:.8rem"></textarea>
+  <hr>
+  <label class="f">Reiniciar nivel</label>
+  <p class="note" style="margin:0 0 .5rem">Regresa tu nivel y el de tus pilares a 1, con la XP en 0. Tus misiones, hábitos, acciones, historial, diario y logros se quedan como están.</p>
+  <button class="btn" id="btnResetLevel">↺ Reiniciar nivel</button>
   <hr>
   <label class="f">Empezar de cero</label>
   <p class="note" style="margin:0 0 .5rem">Borra tu nivel, XP, historial, misiones, pilares y diario. Te recomendamos descargar un respaldo antes.</p>
@@ -784,7 +788,7 @@ function levelInfo(xp){let lvl=1,need=100,rest=Math.max(0,xp);while(rest>=need){
 function xpForLevel(l){let t=0;for(let i=1;i<l;i++)t+=100+(i-1)*25;return t}
 const titleFor=l=>TITLES[Math.min(Math.floor((l-1)/3),TITLES.length-1)];
 const pillarById=id=>state.pillars.find(p=>p.id===id)||{id,name:"Sin pilar",emoji:"·",color:"#777"};
-function pillarTotals(keys){const t={};for(const k of keys||Object.keys(state.log)){const d=state.log[k];if(!d||!d.px)continue;for(const[p,v]of Object.entries(d.px))t[p]=(t[p]||0)+v}return t}
+function pillarTotals(keys){const t={};for(const k of keys||Object.keys(state.log)){const d=state.log[k];if(!d||!d.px)continue;for(const[p,v]of Object.entries(d.px))t[p]=(t[p]||0)+v}if(!keys&&state.pxOffset)for(const[p,v]of Object.entries(state.pxOffset))t[p]=(t[p]||0)-v;return t}
 function typeTotals(keys){const t={};for(const k of keys||Object.keys(state.log)){const d=state.log[k];if(!d||!d.tx)continue;for(const[p,v]of Object.entries(d.tx))t[p]=(t[p]||0)+v}return t}
 const segBlocks=(pct,n=5)=>{const on=Math.round(pct/100*n);return"■".repeat(on)+"□".repeat(n-on)};
 function segBarHtml(pct,color,n=10){const on=Math.round(pct/100*n);return`<span class="segbar">${[...Array(n)].map((_,i)=>`<i style="${i<on?`background:${color}`:""}"></i>`).join("")}</span>`}
@@ -1431,7 +1435,7 @@ $("#badActions").addEventListener("click",async e=>{
   if(e.target.closest("#btnAddBad")){addMode="bad";$("#addTitle").textContent="Nuevo hábito malo";$("#addXpLbl").textContent="XP que te resta";$("#addName").value="";$("#addEmoji").value="";$("#addXp").value=15;$("#addPillar").innerHTML=pillarOptions(state.pillars[0]&&state.pillars[0].id);$("#dlgAdd").showModal();return}
   const b=e.target.closest("[data-bad]");if(b)doBad(b.dataset.bad,b);
 });
-$("#btnAddOk").addEventListener("click",()=>{const name=$("#addName").value.trim();if(!name){$("#addName").focus();return}const xp=Math.max(1,Math.min(200,parseInt($("#addXp").value)||10));
+$("#btnAddOk").addEventListener("click",()=>{const name=$("#addName").value.trim();if(!name){$("#addName").focus();return}const xp=Math.max(1,parseInt($("#addXp").value)||10);
   if(addMode==="bad"){state.badHabits.push({id:"b"+uid(),name,emoji:$("#addEmoji").value.trim()||"⚠️",xp,pillar:$("#addPillar").value});$("#dlgAdd").close();persist();renderAll();toast(`Hábito malo agregado: ${name}`);return}
   state.actions.push({id:"c"+Date.now().toString(36),name,emoji:$("#addEmoji").value.trim()||"⭐",xp,pillar:$("#addPillar").value});$("#dlgAdd").close();persist();renderAll();toast(`Acción agregada: ${name}`)});
 $("#name").addEventListener("change",e=>{state.name=e.target.value.trim()||"Jugador";persist();renderHero()});
@@ -1465,7 +1469,7 @@ function renderAdminBad(){
   $("#adminBad").innerHTML=draftBad.length?draftBad.map((b,i)=>`<div class="brow">
     <input class="in" data-bf="emoji" data-i="${i}" value="${esc(b.emoji)}" maxlength="4" aria-label="Emoji" style="text-align:center">
     <input class="in" data-bf="name" data-i="${i}" value="${esc(b.name)}" maxlength="30" aria-label="Nombre del hábito" placeholder="Nombre">
-    <input class="in" data-bf="xp" data-i="${i}" type="number" min="1" max="200" value="${b.xp}" aria-label="XP que resta" title="XP que resta">
+    <input class="in" data-bf="xp" data-i="${i}" type="number" min="1" value="${b.xp}" aria-label="XP que resta" title="XP que resta">
     <button class="btn sm ghost" data-bx="${i}" aria-label="Quitar ${esc(b.name)}">✕</button>
     <span></span><select class="in" data-bf="pillar" data-i="${i}" aria-label="Pilar">${pillarOptions(b.pillar)}</select>
   </div>`).join(""):`<p class="note">No tienes hábitos malos. Agrega uno.</p>`;
@@ -1475,7 +1479,7 @@ $("#adminBad").addEventListener("change",e=>{const f=e.target.dataset.bf,i=e.tar
 $("#adminBad").addEventListener("click",e=>{const b=e.target.closest("[data-bx]");if(!b)return;draftBad.splice(+b.dataset.bx,1);renderAdminBad()});
 $("#btnAdminBadAdd").addEventListener("click",()=>{draftBad.push({id:"b"+uid(),name:"",emoji:"⚠️",xp:15,pillar:state.pillars[0]?state.pillars[0].id:""});renderAdminBad();const ins=$("#adminBad").querySelectorAll('[data-bf="name"]');ins[ins.length-1].focus()});
 $("#btnAdminBadSave").addEventListener("click",()=>{
-  const clean=draftBad.filter(b=>b.name.trim()).map(b=>({...b,name:b.name.trim(),emoji:(b.emoji||"").trim()||"⚠️",xp:Math.max(1,Math.min(200,parseInt(b.xp)||15))}));
+  const clean=draftBad.filter(b=>b.name.trim()).map(b=>({...b,name:b.name.trim(),emoji:(b.emoji||"").trim()||"⚠️",xp:Math.max(1,parseInt(b.xp)||15)}));
   state.badHabits=clean;persist();renderAll();draftBad=clean.map(b=>({...b}));renderAdminBad();toast(`Hábitos malos guardados (${clean.length})`);
 });
 function openAdmin(){draftBad=state.badHabits.map(b=>({...b}));renderAdminBad();$("#adminXp").value=state.xp;$("#adminBadges").innerHTML=ACH.map(a=>`<label><input type="checkbox" data-ach="${a.id}" ${state.achievements[a.id]?"checked":""}> ${a.em} ${esc(a.name)}</label>`).join("");if(!$("#dlgAdmin").open)$("#dlgAdmin").showModal()}
@@ -1493,6 +1497,12 @@ async function resetProgress(){
   renderAll();toast("Progreso reiniciado. ¡Nivel 1 otra vez!");return true;
 }
 $("#btnReset").addEventListener("click",async()=>{if(await resetProgress())$("#dlgAdmin").close()});
+$("#btnResetLevel").addEventListener("click",async()=>{
+  if(!(await ask("Tu nivel y el de tus pilares regresan a 1 y tu XP queda en 0. Tus misiones, hábitos, historial, diario y logros no se tocan.","Sí, reiniciar nivel","¿Reiniciar tu nivel?")))return;
+  const off={};for(const[p,v]of Object.entries(pillarTotals()))off[p]=(state.pxOffset&&state.pxOffset[p]||0)+v;
+  state.pxOffset=off;state.xp=0;
+  persist();renderAll(true);$("#dlgSettings").close();toast("↺ Nivel reiniciado. ¡De vuelta al nivel 1!");
+});
 $("#btnReset2").addEventListener("click",async()=>{if(await resetProgress())$("#dlgSettings").close()});
 
 
