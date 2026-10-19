@@ -194,6 +194,9 @@ button.gb:hover{background:var(--surface-2)}
 .act .pl{display:block;font-size:.72rem;color:var(--muted);text-transform:uppercase;font-weight:700;margin-top:.15rem}
 .act .ct{position:absolute;top:.5rem;right:.55rem;font-family:var(--font-m);font-size:.8rem;background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:0 .35rem;min-width:1.5rem;text-align:center}
 .act .del{position:absolute;bottom:.35rem;right:.35rem;border:0;background:transparent;color:var(--muted);font-size:.8rem;padding:.2rem .35rem;border-radius:4px}
+.act.bad{border-color:color-mix(in srgb,var(--coral) 45%,var(--line));background:color-mix(in srgb,var(--coral) 7%,var(--surface-2))}
+.act.bad .xp{color:var(--coral)}
+.float.neg{color:var(--coral)}
 .act.addact{border-style:dashed;background:transparent;display:grid;place-items:center;text-align:center;color:var(--muted);font-weight:700;min-height:104px}
 .float{position:absolute;left:50%;top:0;font-family:var(--font-m);font-weight:700;font-size:1.2rem;color:var(--gold-ink);pointer-events:none;animation:floatUp .9s ease-out forwards}
 @keyframes floatUp{from{opacity:1;transform:translate(-50%,0)}to{opacity:0;transform:translate(-50%,-52px)}}
@@ -303,6 +306,9 @@ input.in,select.in{width:100%;border:1px solid var(--line);border-radius:8px;pad
 .swatches button{width:20px;height:20px;border-radius:50%;border:2px solid transparent;padding:0}
 .swatches button[aria-pressed="true"]{border-color:var(--ink)}
 .admin-list{display:grid;gap:.3rem;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.5rem}
+.brow{display:grid;grid-template-columns:46px minmax(0,1fr) 68px 34px;gap:.35rem;align-items:center;margin-bottom:.35rem}
+.brow select{grid-column:2/4}
+.brow input,.brow select{padding:.4rem .5rem}
 .admin-list label{display:flex;gap:.5rem;align-items:center;font-size:.9rem}
 hr{border:0;border-top:1px solid var(--line);margin:1rem 0}
 
@@ -407,6 +413,12 @@ hr{border:0;border-top:1px solid var(--line);margin:1rem 0}
           <div class="goalbars" id="goalBars"></div>
         </section>
         <section class="card block wide">
+          <div class="headrow"><h2>Hábitos malos</h2><span class="note" id="cleanNote"></span></div>
+          <div class="chart" id="chBad"></div>
+          <h3 class="sec">Esta semana vs la anterior</h3>
+          <div class="hbars" id="badBars"></div>
+        </section>
+        <section class="card block wide">
           <h2>Totales por acción</h2>
           <div class="totals" id="totals"></div>
           <h3 class="sec">Últimas 4 semanas</h3>
@@ -427,6 +439,11 @@ hr{border:0;border-top:1px solid var(--line);margin:1rem 0}
         <h2>Acciones</h2>
         <p class="sub">Toca una acción cada vez que la completes. Su XP va a su pilar.</p>
         <div class="actions" id="actions"></div>
+      </section>
+      <section class="card block">
+        <h2>Hábitos malos</h2>
+        <p class="sub">Sé honesto: tócalo cada vez que caigas en uno. Te resta XP del pilar que afecta.</p>
+        <div class="actions" id="badActions"></div>
       </section>
       <section class="card block">
         <div class="headrow"><h2>Registro de hoy</h2><button class="btn ghost sm" id="btnUndo">↩ Deshacer última acción</button></div>
@@ -565,14 +582,14 @@ hr{border:0;border-top:1px solid var(--line);margin:1rem 0}
 </dialog>
 
 <dialog id="dlgAdd">
-  <h3>Nueva acción</h3>
+  <h3 id="addTitle">Nueva acción</h3>
   <label class="f" for="addName">Nombre</label><input class="in" id="addName" maxlength="20" placeholder="Leer">
   <div class="two">
     <div><label class="f" for="addEmoji">Emoji</label><input class="in" id="addEmoji" maxlength="4" placeholder="📚"></div>
-    <div><label class="f" for="addXp">XP por vez</label><input class="in" id="addXp" type="number" min="1" max="200" value="10"></div>
+    <div><label class="f" for="addXp" id="addXpLbl">XP por vez</label><input class="in" id="addXp" type="number" min="1" max="200" value="10"></div>
   </div>
   <label class="f" for="addPillar">Pilar</label><select class="in" id="addPillar"></select>
-  <div class="row end" style="margin-top:1rem"><button class="btn ghost" data-close>Cancelar</button><button class="btn gold" id="btnAddOk">Agregar acción</button></div>
+  <div class="row end" style="margin-top:1rem"><button class="btn ghost" data-close>Cancelar</button><button class="btn gold" id="btnAddOk">Agregar</button></div>
 </dialog>
 
 <dialog id="dlgSettings">
@@ -580,7 +597,7 @@ hr{border:0;border-top:1px solid var(--line);margin:1rem 0}
   <label class="f">Avatar</label><div class="avatars" id="avatars"></div>
   <hr>
   <label class="f">Acciones</label>
-  <p class="note" style="margin:0 0 .4rem">Elige a qué pilar suma cada acción.</p>
+  <p class="note" style="margin:0 0 .4rem">Elige a qué pilar suma cada acción y de cuál resta cada hábito malo.</p>
   <div id="actionPillars" style="display:grid;gap:.35rem"></div>
   <hr>
   <label class="f">Respaldo</label>
@@ -603,13 +620,18 @@ hr{border:0;border-top:1px solid var(--line);margin:1rem 0}
   <div class="row end" style="margin-top:1rem"><button class="btn ghost" data-close>Cancelar</button><button class="btn gold" id="btnPinOk">Entrar</button></div>
 </dialog>
 
-<dialog id="dlgAdmin">
+<dialog id="dlgAdmin" style="width:min(560px,calc(100% - 2rem))">
   <h3>🔓 Panel admin</h3>
   <label class="f" for="adminXp">XP total</label>
   <div class="row"><input class="in" id="adminXp" type="number" min="0" style="flex:1"><button class="btn" id="btnSetXp">Guardar XP</button></div>
   <label class="f">Logros</label>
   <div class="admin-list" id="adminBadges"></div>
   <div class="row" style="margin-top:.5rem"><button class="btn" id="btnUnlockAll">Desbloquear todos</button></div>
+  <hr>
+  <label class="f">Hábitos malos</label>
+  <p class="note" style="margin:0 0 .5rem">Edita el emoji, el nombre, cuánta XP resta y de qué pilar. Lo que ya registraste se conserva.</p>
+  <div id="adminBad"></div>
+  <div class="row between" style="margin-top:.5rem"><button class="btn sm" id="btnAdminBadAdd">＋ Agregar hábito malo</button><button class="btn gold sm" id="btnAdminBadSave">Guardar hábitos malos</button></div>
   <hr>
   <div class="row between"><button class="btn danger" id="btnReset">Reiniciar progreso</button><button class="btn" data-close>Cerrar</button></div>
 </dialog>
@@ -621,11 +643,19 @@ hr{border:0;border-top:1px solid var(--line);margin:1rem 0}
     <label class="f" for="accEmail">Correo</label><input class="in" id="accEmail" type="email" autocomplete="email" placeholder="tu@correo.com">
     <label class="f" for="accPass">Contraseña</label><input class="in" id="accPass" type="password" autocomplete="current-password" placeholder="mínimo 6 caracteres">
     <p class="note" id="accMsg" hidden style="margin:.7rem 0 0"></p>
+    <button class="btn ghost sm" id="accForgot" style="margin-top:.6rem;border:0;padding-left:0;color:var(--violet-ink)">¿Olvidaste tu contraseña?</button>
     <div class="row end" style="margin-top:1rem"><button class="btn ghost" data-close>Cerrar</button><button class="btn" id="accSignUp">Crear cuenta</button><button class="btn gold" id="accSignIn">Entrar</button></div>
   </div>
   <div id="accIn" hidden>
     <p style="margin-top:0">Sesión iniciada como <b id="accWho"></b></p>
     <p class="note" id="accStatus"></p>
+    <hr>
+    <label class="f" for="newPass" style="margin-top:0">Cambiar contraseña</label>
+    <input class="in" id="newPass" type="password" autocomplete="new-password" placeholder="Nueva contraseña (mínimo 6 caracteres)">
+    <input class="in" id="newPass2" type="password" autocomplete="new-password" placeholder="Repite la nueva contraseña" style="margin-top:.45rem">
+    <p class="note" id="passMsg" hidden style="margin:.6rem 0 0"></p>
+    <div class="row end" style="margin-top:.6rem"><button class="btn gold" id="btnChangePass">Cambiar contraseña</button></div>
+    <hr>
     <div class="row between" style="margin-top:1rem"><button class="btn danger" id="accSignOut">Cerrar sesión</button><div class="row"><button class="btn" id="accSync">Sincronizar ahora</button><button class="btn" data-close>Cerrar</button></div></div>
   </div>
 </dialog>
@@ -669,14 +699,24 @@ const DEFAULT_ACTIONS=[
   {id:"gym",name:"Gym",emoji:"🏋️",xp:20,base:true,pillar:"cuerpo"},
   {id:"task",name:"Tarea",emoji:"✅",xp:5,base:true,pillar:"trabajo"}
 ];
+const DEFAULT_BAD=[
+  {id:"b_scroll",name:"Scroll infinito",emoji:"📱",xp:15,pillar:"mente"},
+  {id:"b_chatarra",name:"Comer chatarra",emoji:"🍔",xp:15,pillar:"cuerpo"},
+  {id:"b_refresco",name:"Refresco o dulces",emoji:"🥤",xp:10,pillar:"cuerpo"},
+  {id:"b_desvelo",name:"Desvelarme",emoji:"🌙",xp:15,pillar:"cuerpo"},
+  {id:"b_procrastinar",name:"Procrastinar",emoji:"⏰",xp:20,pillar:"disciplina"},
+  {id:"b_vape",name:"Vapear o fumar",emoji:"🚬",xp:25,pillar:"cuerpo"},
+  {id:"b_compra",name:"Compra impulsiva",emoji:"💸",xp:15,pillar:"disciplina"},
+  {id:"b_pelea",name:"Pelear o mal humor",emoji:"😤",xp:10,pillar:"relaciones"}
+];
 const TITLES=["Novato","Aprendiz","Explorador","Aventurero","Guerrero","Veterano","Campeón","Héroe","Maestro","Leyenda"];
 const AVATARS=["🧙","🦸","🥷","🧝","🤖","🐉","🦊","👾","🧑‍🚀","🐺"];
 const MES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 const DIA=["D","L","M","M","J","V","S"];
-const TYPE_NAME={accion:"Acciones",diaria:"Diarias",meta:"Meta",destino:"Destino"};
+const TYPE_NAME={accion:"Acciones",diaria:"Diarias",meta:"Meta",destino:"Destino",malo:"Hábitos malos"};
 const TYPE_COLOR={accion:"var(--muted)",diaria:"var(--violet)",meta:"var(--blue)",destino:"var(--gold)"};
 const LS_KEY="lifereplay-v1";
-const ADMIN_PIN="81332027";
+const ADMIN_PIN="8718";
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -689,7 +729,7 @@ const round2=n=>Math.round(n*100)/100;
 const fmtDay=(k,long)=>keyDate(k).toLocaleDateString("es-MX",long?{weekday:"long",day:"numeric",month:"long",year:"numeric"}:{day:"numeric",month:"short"});
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 
-function freshState(){return{v:3,name:"Jugador",avatar:"🧙",xp:0,pillars:DEFAULT_PILLARS.map(p=>({...p})),actions:DEFAULT_ACTIONS.map(a=>({...a})),log:{},events:[],journal:[],achievements:{},missionDefs:[],metas:[],goals:[],prefs:{sound:true,music:false,vibe:!matchMedia("(prefers-reduced-motion: reduce)").matches},updatedAt:0}}
+function freshState(){return{v:3,name:"Jugador",avatar:"🧙",xp:0,pillars:DEFAULT_PILLARS.map(p=>({...p})),actions:DEFAULT_ACTIONS.map(a=>({...a})),log:{},events:[],journal:[],achievements:{},missionDefs:[],metas:[],goals:[],badHabits:DEFAULT_BAD.map(b=>({...b})),prefs:{sound:true,music:false,vibe:!matchMedia("(prefers-reduced-motion: reduce)").matches},updatedAt:0}}
 /* Conserva todo lo anterior y agrega pilares, tipos de misión y XP por pilar */
 function migrate(s){
   const f=freshState();if(!s||typeof s!=="object")return f;
@@ -697,6 +737,7 @@ function migrate(s){
   if(!Array.isArray(o.actions)||!o.actions.length)o.actions=f.actions;
   if(!o.log||typeof o.log!=="object")o.log={};
   for(const k of["events","journal","missionDefs","goals","metas"])if(!Array.isArray(o[k]))o[k]=[];
+  if(!Array.isArray(o.badHabits))o.badHabits=f.badHabits;
   if(!(s.v>=2)){
     for(const e of o.events){if(e.a==="mission"&&!e.mid){const k=dayKey(new Date(e.t));const d=o.log[k]||(o.log[k]={counts:{},xp:0});d.legacyM=(d.legacyM||0)+1}}
     delete o.missions;
@@ -754,7 +795,9 @@ function countFor(day,id){return(day&&day.counts&&day.counts[id])||0}
 function totalCount(day){return day?Object.values(day.counts||{}).reduce((a,b)=>a+b,0):0}
 const dayDone=d=>d?((d.done||[]).length+(d.metaDone||[]).length+(d.legacyM||0)):0;
 const dayTotal=d=>d?(Math.max(d.mTotal||0,(d.done||[]).length)+(d.metaDone||[]).length+(d.legacyM||0)):0;
-const isActive=d=>totalCount(d)>0||dayDone(d)>0||(d&&d.goals&&Object.keys(d.goals).length>0);
+const badCount=d=>d&&d.bad?Object.values(d.bad).reduce((a,b)=>a+b,0):0;
+const isActive=d=>totalCount(d)>0||dayDone(d)>0||badCount(d)>0||(d&&d.goals&&Object.keys(d.goals).length>0);
+const cleanStreak=()=>streak(day=>!!day&&isActive(day)&&badCount(day)===0);
 
 function streak(test){let n=0,d=new Date();if(!test(state.log[dayKey(d)]))d=addDays(d,-1);while(test(state.log[dayKey(d)])){n++;d=addDays(d,-1)}return n}
 const anyStreak=()=>streak(day=>totalCount(day)>0||dayDone(day)>0);
@@ -884,6 +927,7 @@ const ACH=[
   {id:"xp1000",em:"💎",name:"Mil de experiencia",desc:"Junta 1,000 XP",p:()=>[state.xp,1000]},
   {id:"lvl10",em:"🌟",name:"Nivel 10",desc:"Llega al nivel 10",p:()=>[levelInfo(state.xp).lvl,10]},
   {id:"tasks100",em:"🗂️",name:"Cien tareas",desc:"Completa 100 tareas",p:()=>[totalsByAction().task||0,100]},
+  {id:"clean7",em:"🧼",name:"Autocontrol",desc:"7 días seguidos sin hábitos malos",p:()=>[cleanStreak(),7]},
   {id:"streak30",em:"👑",name:"Leyenda del mes",desc:"30 días seguidos activo",p:()=>[anyStreak(),30]}
 ];
 function checkAchievements(silent){for(const a of ACH){if(state.achievements[a.id])continue;const[c,t]=a.p();if(c>=t){state.achievements[a.id]=Date.now();if(!silent){toast(`🏆 Logro desbloqueado: ${a.name}`);sfx("badge")}}}}
@@ -899,11 +943,21 @@ function doAction(id,el){
   if(el){const f=document.createElement("span");f.className="float";f.textContent="+"+a.xp;el.appendChild(f);setTimeout(()=>f.remove(),900)}
   afterChange(true);
 }
+function doBad(id,el){
+  const b=state.badHabits.find(x=>x.id===id);if(!b)return;
+  const d=today();d.bad=d.bad||{};d.bad[id]=(d.bad[id]||0)+1;d.bn=d.bn||{};d.bn[id]=b.emoji+" "+b.name;
+  state.events.push({t:Date.now(),a:"bad",bid:id,label:b.name,em:b.emoji,xp:-b.xp,p:b.pillar});
+  addXP(-b.xp,{pillar:b.pillar,type:"malo"});sfx("bad");
+  if(el){const f=document.createElement("span");f.className="float neg";f.textContent="−"+b.xp;el.appendChild(f);setTimeout(()=>f.remove(),900)}
+  toast(`${b.emoji} ${b.name}: −${b.xp} XP de ${pillarById(b.pillar).name}`);
+  afterChange();
+}
 function undo(){
   const k=dayKey();
   for(let i=state.events.length-1;i>=0;i--){
     const e=state.events[i];
     if(dayKey(new Date(e.t))!==k)break;
+    if(e.a==="bad"){const d=today();if(d.bad&&d.bad[e.bid])d.bad[e.bid]--;state.xp=Math.max(0,state.xp-e.xp);xpAdjustDay(k,-e.xp,{pillar:e.p,type:"malo"});state.events.splice(i,1);toast(`↩ Se quitó ${e.label} (+${-e.xp} XP)`);afterChange();return}
     const a=state.actions.find(x=>x.id===e.a);if(!a)continue;
     const d=today();if(d.counts[e.a])d.counts[e.a]--;
     state.xp=Math.max(0,state.xp-e.xp);xpAdjustDay(k,-e.xp,{pillar:e.p||a.pillar,type:"accion"});
@@ -979,7 +1033,7 @@ function radarChart(el){
 }
 function hbars(el,rows){
   const max=Math.max(1,...rows.map(r=>r.v));
-  el.innerHTML=rows.length?rows.map(r=>`<div class="hb" data-tip="${esc(r.tip||"")}"><span class="lab">${r.label}</span><span class="tr"><i style="width:${Math.max(0,r.v)/max*100}%;background:${r.color}"></i></span><span class="v">${fmtNum(Math.round(r.v))} XP</span></div>`).join(""):`<p class="note">Sin datos todavía.</p>`;
+  el.innerHTML=rows.length?rows.map(r=>`<div class="hb" data-tip="${esc(r.tip||"")}"><span class="lab">${r.label}</span><span class="tr"><i style="width:${Math.max(0,r.v)/max*100}%;background:${r.color}"></i></span><span class="v">${r.neg?"−":""}${fmtNum(Math.round(r.v))} XP</span></div>`).join(""):`<p class="note">Sin datos todavía.</p>`;
 }
 
 const tip=$("#tip");
@@ -1069,7 +1123,7 @@ function renderPeriods(){
 }
 function renderTypeBars(){
   const keys=ui.typeRange==="all"?null:lastDays(30),tt=typeTotals(keys),pt=pillarTotals(keys);
-  hbars($("#typeBars"),["diaria","meta","destino","accion"].map(k=>({label:TYPE_NAME[k],v:tt[k]||0,color:TYPE_COLOR[k]})));
+  hbars($("#typeBars"),["diaria","meta","destino","accion"].map(k=>({label:TYPE_NAME[k],v:tt[k]||0,color:TYPE_COLOR[k]})).concat([{label:TYPE_NAME.malo,v:Math.abs(tt.malo||0),color:"var(--coral)",neg:true,tip:"XP que te restaron los hábitos malos"}]));
   hbars($("#pillarBars"),state.pillars.map(p=>({label:`${esc(p.emoji)} ${esc(p.name)}`,v:pt[p.id]||0,color:p.color,tip:`Nivel ${levelInfo(pillarTotals()[p.id]||0).lvl}`})));
 }
 function renderGoalBars(){
@@ -1087,7 +1141,19 @@ function renderTotals(){
   const vals=days.map(k=>k?((state.log[k]||{}).xp||0):0),hm=Math.max(40,...vals);
   $("#heat").innerHTML=days.map((k,i)=>k==null?`<i style="opacity:.3;cursor:default"></i>`:`<i data-day="${k}" data-tip="${esc(fmtDay(k))}\n${fmtNum(vals[i])} XP · ${dayDone(state.log[k])} misiones" style="${vals[i]>0?`background:color-mix(in srgb,var(--gold) ${Math.round(25+vals[i]/hm*75)}%,var(--surface-2))`:""}"></i>`).join("");
 }
-function renderDashboard(){if(!$("#p-sistema").classList.contains("on"))return;renderPillarTable();renderStatsCards();renderDaily();renderXpChart();renderPeriods();renderTypeBars();renderGoalBars();renderTotals()}
+function renderBadDash(){
+  const keys=lastDays(14),last=keys.length-1,vals=keys.map(k=>badCount(state.log[k]));
+  barChart($("#chBad"),{labels:keys.map((k,i)=>i===last?"Hoy":`${DIA[keyDate(k).getDay()]}${keyDate(k).getDate()}`),stacks:[{values:vals,color:"var(--coral)"}],
+    tips:keys.map((k,i)=>{const d=state.log[k];const list=d&&d.bad?Object.entries(d.bad).filter(([,v])=>v>0).map(([id,v])=>{const b=state.badHabits.find(x=>x.id===id);return`${b?b.emoji+" "+b.name:(d.bn&&d.bn[id])||"Hábito eliminado"} ×${v}`}).join("\n"):"";return`${fmtDay(k)}\n${vals[i]?vals[i]+" hábitos malos\n"+list:"Día limpio 🧼"}`}),hi:last,height:170,onClick:i=>openHistory(keys[i])});
+  const cs=cleanStreak();$("#cleanNote").textContent=cs?`🧼 ${cs} ${cs===1?"día":"días"} seguidos limpio`:"";
+  const now=new Date(),ws=addDays(now,-((now.getDay()+6)%7)),cur=[],prev=[];
+  for(let i=0;i<7;i++){const d=addDays(ws,i);if(d<=now)cur.push(dayKey(d));prev.push(dayKey(addDays(ws,i-7)))}
+  const sum=(keys,id)=>keys.reduce((a,k)=>a+(((state.log[k]||{}).bad||{})[id]||0),0);
+  const rows=state.badHabits.map(b=>({b,c:sum(cur,b.id),p:sum(prev,b.id)})).filter(r=>r.c||r.p);
+  const max=Math.max(1,...rows.map(r=>Math.max(r.c,r.p)));
+  $("#badBars").innerHTML=rows.length?rows.sort((a,b)=>b.c-a.c).map(r=>{const diff=r.c-r.p;return`<div class="hb"><span class="lab">${esc(r.b.emoji)} ${esc(r.b.name)}</span><span class="tr"><i style="width:${r.c/max*100}%;background:var(--coral)"></i></span><span class="v">${r.c} <span class="${diff<=0?"up":"down"}">${diff<0?"▼"+(-diff):diff>0?"▲"+diff:"="}</span></span></div>`}).join("")+`<p class="note" style="margin:.2rem 0 0">▼ verde = menos que la semana pasada.</p>`:`<p class="note">Sin hábitos malos registrados en estas dos semanas. ¡Bien!</p>`;
+}
+function renderDashboard(){if(!$("#p-sistema").classList.contains("on"))return;renderBadDash();renderPillarTable();renderStatsCards();renderDaily();renderXpChart();renderPeriods();renderTypeBars();renderGoalBars();renderTotals()}
 
 function renderMissions(){
   const k=dayKey(),d=state.log[k],act=activeDefs();
@@ -1101,7 +1167,13 @@ function renderMissions(){
     <div class="right"><span class="bonus">+${m.xp}</span></div></li>`);
   $("#missions").innerHTML=ml.join("")+dl.join("");
 }
-function renderActions(){
+function renderBadActions(){
+  const d=state.log[dayKey()];
+  $("#badActions").innerHTML=state.badHabits.map(b=>{const p=pillarById(b.pillar);return`<button class="act bad" data-bad="${esc(b.id)}" aria-label="${esc(b.name)}, menos ${b.xp} XP">
+      <span class="ct" title="Hoy">${(d&&d.bad&&d.bad[b.id])||0}</span><span class="em">${esc(b.emoji)}</span><span class="nm">${esc(b.name)}</span><span class="xp">−${b.xp} XP</span><span class="pl" style="color:${p.color}">${esc(p.name)}</span>
+      <span class="del" role="button" tabindex="0" data-bdel="${esc(b.id)}" aria-label="Eliminar ${esc(b.name)}">✕</span></button>`}).join("")+`<button class="act addact" id="btnAddBad">＋ Nuevo hábito malo</button>`;
+}
+function renderActions(){renderBadActions();
   const d=state.log[dayKey()];
   $("#actions").innerHTML=state.actions.map(a=>{const p=pillarById(a.pillar);return`<button class="act" data-act="${esc(a.id)}" aria-label="${esc(a.name)}, más ${a.xp} XP">
       <span class="ct" title="Hoy">${countFor(d,a.id)}</span><span class="em">${esc(a.emoji)}</span><span class="nm">${esc(a.name)}</span><span class="xp">+${a.xp} XP</span><span class="pl" style="color:${p.color}">${esc(p.name)}</span>
@@ -1167,7 +1239,7 @@ function renderHistory(){
   $("#histDetail").innerHTML=`<h2 style="text-transform:none;letter-spacing:0">${esc(fmtDay(k,true))}</h2>${isActive(d)||j?"":`<p class="note">No hay actividad registrada este día.</p>`}
     <div class="hgrid"><div><small>XP ganada</small><b>${fmtNum((d&&d.xp)||0)}</b></div><div><small>XP al cierre</small><b>${fmtNum(xpEnd)}</b></div><div><small>Nivel</small><b>${L.lvl}</b></div><div><small>Misiones</small><b>${dayDone(d)}/${dayTotal(d)}</b></div><div><small>Acciones</small><b>${totalCount(d)}</b></div></div>
     ${px.length?`<h3 class="sec">XP por pilar</h3><div class="hbars" id="histPx"></div>`:""}
-    ${acts?`<h3 class="sec">Acciones</h3><ul class="hlist">${acts}</ul>`:""}${mis?`<h3 class="sec">Misiones completadas</h3><ul class="hlist">${mis}</ul>`:""}${gls?`<h3 class="sec">Avance en misiones destino</h3><ul class="hlist">${gls}</ul>`:""}
+    ${acts?`<h3 class="sec">Acciones</h3><ul class="hlist">${acts}</ul>`:""}${mis?`<h3 class="sec">Misiones completadas</h3><ul class="hlist">${mis}</ul>`:""}${gls?`<h3 class="sec">Avance en misiones destino</h3><ul class="hlist">${gls}</ul>`:""}${d&&badCount(d)?`<h3 class="sec">Hábitos malos</h3><ul class="hlist">${Object.entries(d.bad).filter(([,v])=>v>0).map(([id,v])=>{const b=state.badHabits.find(x=>x.id===id);return`<li>${esc(b?b.emoji+" "+b.name:(d.bn&&d.bn[id])||"Hábito eliminado")}: ${v}</li>`}).join("")}</ul>`:""}
     ${ev.length?`<h3 class="sec">Registro</h3><ul class="feed">${ev.slice().reverse().map(feedItem).join("")}</ul>`:""}${j?`<h3 class="sec">Capítulo del diario</h3><p class="story" style="white-space:pre-line;max-width:68ch">${esc(j.story||j.text)}</p>`:""}`;
   if(px.length)hbars($("#histPx"),px.map(([id,v])=>{const p=pillarById(id);return{label:`${esc(p.emoji)} ${esc(p.name)}`,v,color:p.color}}));
 }
@@ -1190,7 +1262,7 @@ function toast(msg){const t=document.createElement("div");t.className="toast";t.
 let actx=null;
 function ctx(){if(!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(actx&&actx.state==="suspended")actx.resume();return actx}
 function beep(f,t0,dur,type="square",vol=.06){const c=ctx();if(!c)return;const o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f,c.currentTime+t0);g.gain.setValueAtTime(vol,c.currentTime+t0);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+t0+dur);o.connect(g).connect(c.destination);o.start(c.currentTime+t0);o.stop(c.currentTime+t0+dur+.02)}
-function sfx(kind){if(!state.prefs.sound)return;if(kind==="xp"){beep(660,0,.08);beep(990,.07,.12)}else if(kind==="badge"){[523,659,784,1047].forEach((f,i)=>beep(f,i*.08,.15,"triangle",.07))}else if(kind==="level"){[392,523,659,784,1047,1319].forEach((f,i)=>beep(f,i*.09,.22,"square",.06));beep(1568,.6,.5,"triangle",.06)}}
+function sfx(kind){if(!state.prefs.sound)return;if(kind==="bad"){beep(330,0,.12,"sawtooth",.05);beep(220,.1,.25,"sawtooth",.05);return}if(kind==="xp"){beep(660,0,.08);beep(990,.07,.12)}else if(kind==="badge"){[523,659,784,1047].forEach((f,i)=>beep(f,i*.08,.15,"triangle",.07))}else if(kind==="level"){[392,523,659,784,1047,1319].forEach((f,i)=>beep(f,i*.09,.22,"square",.06));beep(1568,.6,.5,"triangle",.06)}}
 let musicOn=false,musicTimer=null,step=0,nextT=0;
 const MEL=[220,262,330,392,330,262,294,349,440,349,294,247,196,247,294,392];
 function startMusic(){const c=ctx();if(!c)return;musicOn=true;nextT=c.currentTime+.05;step=0;
@@ -1225,7 +1297,7 @@ function dayContext(){
   const d=state.log[dayKey()]||{counts:{},xp:0},L=levelInfo(state.xp),t=pillarTotals();
   const acts=state.actions.map(a=>`${a.name}: ${countFor(d,a.id)}`).join(", ");
   const pil=state.pillars.map(p=>`${p.name} nivel ${levelInfo(t[p.id]||0).lvl}`).join(", ");
-  return`Personaje: ${state.name}, nivel ${L.lvl} (${titleFor(L.lvl)}), XP total ${state.xp}. Pilares: ${pil}. Hoy ganó ${d.xp||0} XP. Acciones de hoy: ${acts}. Misiones completadas hoy: ${dayDone(d)} de ${dayTotal(d)}. Racha activa: ${anyStreak()} días.`;
+  return`Personaje: ${state.name}, nivel ${L.lvl} (${titleFor(L.lvl)}), XP total ${state.xp}. Pilares: ${pil}. Hoy ganó ${d.xp||0} XP. Acciones de hoy: ${acts}. Hábitos malos de hoy: ${badCount(d)?Object.entries(d.bad).filter(([,v])=>v>0).map(([id,v])=>`${(state.badHabits.find(x=>x.id===id)||{name:"otro"}).name} ×${v}`).join(", "):"ninguno"}. Misiones completadas hoy: ${dayDone(d)} de ${dayTotal(d)}. Racha activa: ${anyStreak()} días.`;
 }
 async function makeStory(){
   const text=$("#diaryText").value.trim();if(!text){toast("Escribe algo de tu día primero");$("#diaryText").focus();return}
@@ -1349,10 +1421,19 @@ let rz=null;addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(render
 $("#actions").addEventListener("click",async e=>{
   const del=e.target.closest("[data-del]");
   if(del){e.stopPropagation();const a=state.actions.find(x=>x.id===del.dataset.del);if(a&&await ask("Su historial se conserva.","Sí, eliminar",`¿Eliminar la acción ${a.name}?`)){state.actions=state.actions.filter(x=>x.id!==a.id);persist();renderAll()}return}
-  if(e.target.closest("#btnAddAct")){$("#addName").value="";$("#addEmoji").value="";$("#addXp").value=10;$("#addPillar").innerHTML=pillarOptions(state.pillars[0]&&state.pillars[0].id);$("#dlgAdd").showModal();return}
+  if(e.target.closest("#btnAddAct")){addMode="action";$("#addTitle").textContent="Nueva acción";$("#addXpLbl").textContent="XP por vez";$("#addName").value="";$("#addEmoji").value="";$("#addXp").value=10;$("#addPillar").innerHTML=pillarOptions(state.pillars[0]&&state.pillars[0].id);$("#dlgAdd").showModal();return}
   const b=e.target.closest("[data-act]");if(b)doAction(b.dataset.act,b);
 });
-$("#btnAddOk").addEventListener("click",()=>{const name=$("#addName").value.trim();if(!name){$("#addName").focus();return}const xp=Math.max(1,Math.min(200,parseInt($("#addXp").value)||10));state.actions.push({id:"c"+Date.now().toString(36),name,emoji:$("#addEmoji").value.trim()||"⭐",xp,pillar:$("#addPillar").value});$("#dlgAdd").close();persist();renderAll();toast(`Acción agregada: ${name}`)});
+let addMode="action";
+$("#badActions").addEventListener("click",async e=>{
+  const del=e.target.closest("[data-bdel]");
+  if(del){e.stopPropagation();const b=state.badHabits.find(x=>x.id===del.dataset.bdel);if(b&&await ask("Lo que ya registraste se conserva en tu historial.","Sí, quitar",`¿Quitar ${b.name} de tus hábitos malos?`)){state.badHabits=state.badHabits.filter(x=>x.id!==b.id);persist();renderAll()}return}
+  if(e.target.closest("#btnAddBad")){addMode="bad";$("#addTitle").textContent="Nuevo hábito malo";$("#addXpLbl").textContent="XP que te resta";$("#addName").value="";$("#addEmoji").value="";$("#addXp").value=15;$("#addPillar").innerHTML=pillarOptions(state.pillars[0]&&state.pillars[0].id);$("#dlgAdd").showModal();return}
+  const b=e.target.closest("[data-bad]");if(b)doBad(b.dataset.bad,b);
+});
+$("#btnAddOk").addEventListener("click",()=>{const name=$("#addName").value.trim();if(!name){$("#addName").focus();return}const xp=Math.max(1,Math.min(200,parseInt($("#addXp").value)||10));
+  if(addMode==="bad"){state.badHabits.push({id:"b"+uid(),name,emoji:$("#addEmoji").value.trim()||"⚠️",xp,pillar:$("#addPillar").value});$("#dlgAdd").close();persist();renderAll();toast(`Hábito malo agregado: ${name}`);return}
+  state.actions.push({id:"c"+Date.now().toString(36),name,emoji:$("#addEmoji").value.trim()||"⭐",xp,pillar:$("#addPillar").value});$("#dlgAdd").close();persist();renderAll();toast(`Acción agregada: ${name}`)});
 $("#name").addEventListener("change",e=>{state.name=e.target.value.trim()||"Jugador";persist();renderHero()});
 $("#btnUndo").addEventListener("click",undo);
 $("#btnSaveDiary").addEventListener("click",()=>{const t=$("#diaryText").value.trim();if(!t){toast("Escribe algo de tu día primero");return}saveEntry(t,"")});
@@ -1366,10 +1447,10 @@ document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",
 
 $("#btnSettings").addEventListener("click",()=>{
   $("#avatars").innerHTML=AVATARS.map(a=>`<button aria-pressed="${a===state.avatar}" data-av="${a}" aria-label="Avatar ${a}">${a}</button>`).join("");
-  $("#actionPillars").innerHTML=state.actions.map(a=>`<label style="display:grid;grid-template-columns:1fr 160px;gap:.5rem;align-items:center;font-size:.9rem">${esc(a.emoji)} ${esc(a.name)}<select class="in" data-ap="${esc(a.id)}" style="padding:.3rem .4rem">${pillarOptions(a.pillar)}</select></label>`).join("");
+  $("#actionPillars").innerHTML=state.actions.map(a=>`<label style="display:grid;grid-template-columns:1fr 160px;gap:.5rem;align-items:center;font-size:.9rem">${esc(a.emoji)} ${esc(a.name)}<select class="in" data-ap="${esc(a.id)}" style="padding:.3rem .4rem">${pillarOptions(a.pillar)}</select></label>`).join("")+state.badHabits.map(b=>`<label style="display:grid;grid-template-columns:1fr 160px;gap:.5rem;align-items:center;font-size:.9rem">${esc(b.emoji)} ${esc(b.name)} <span class="note" style="color:var(--coral)">(malo)</span><select class="in" data-bp="${esc(b.id)}" style="padding:.3rem .4rem">${pillarOptions(b.pillar)}</select></label>`).join("");
   $("#exportBox").hidden=true;$("#dlgSettings").showModal();
 });
-$("#actionPillars").addEventListener("change",e=>{const a=state.actions.find(x=>x.id===e.target.dataset.ap);if(a){a.pillar=e.target.value;persist();renderAll();toast(`${a.name} ahora suma a ${pillarById(a.pillar).name}`)}});
+$("#actionPillars").addEventListener("change",e=>{if(e.target.dataset.bp){const b=state.badHabits.find(x=>x.id===e.target.dataset.bp);if(b){b.pillar=e.target.value;persist();renderAll();toast(`${b.name} ahora resta de ${pillarById(b.pillar).name}`)}return}const a=state.actions.find(x=>x.id===e.target.dataset.ap);if(a){a.pillar=e.target.value;persist();renderAll();toast(`${a.name} ahora suma a ${pillarById(a.pillar).name}`)}});
 $("#avatars").addEventListener("click",e=>{const b=e.target.closest("[data-av]");if(!b)return;state.avatar=b.dataset.av;persist();renderHero();$("#avatars").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b))});
 let downloads=null;
 $("#btnExport").addEventListener("click",async()=>{const data=JSON.stringify(state,null,2);if(downloads){try{await downloads.save({filename:`lifereplay-${dayKey()}.json`,data});toast("Respaldo descargado");return}catch(e){}}const box=$("#exportBox");box.hidden=false;box.value=data;box.select();toast("Copia este texto y guárdalo")});
@@ -1379,7 +1460,25 @@ $("#fileImport").addEventListener("change",async e=>{const f=e.target.files[0];i
 $("#btnAdmin").addEventListener("click",()=>{$("#pin").value="";$("#pinErr").hidden=true;$("#dlgSettings").close();$("#dlgPin").showModal();setTimeout(()=>$("#pin").focus(),50)});
 function tryPin(){if($("#pin").value===ADMIN_PIN){$("#dlgPin").close();openAdmin()}else{$("#pinErr").hidden=false;$("#pin").select()}}
 $("#btnPinOk").addEventListener("click",tryPin);$("#pin").addEventListener("keydown",e=>{if(e.key==="Enter")tryPin()});
-function openAdmin(){$("#adminXp").value=state.xp;$("#adminBadges").innerHTML=ACH.map(a=>`<label><input type="checkbox" data-ach="${a.id}" ${state.achievements[a.id]?"checked":""}> ${a.em} ${esc(a.name)}</label>`).join("");if(!$("#dlgAdmin").open)$("#dlgAdmin").showModal()}
+let draftBad=[];
+function renderAdminBad(){
+  $("#adminBad").innerHTML=draftBad.length?draftBad.map((b,i)=>`<div class="brow">
+    <input class="in" data-bf="emoji" data-i="${i}" value="${esc(b.emoji)}" maxlength="4" aria-label="Emoji" style="text-align:center">
+    <input class="in" data-bf="name" data-i="${i}" value="${esc(b.name)}" maxlength="30" aria-label="Nombre del hábito" placeholder="Nombre">
+    <input class="in" data-bf="xp" data-i="${i}" type="number" min="1" max="200" value="${b.xp}" aria-label="XP que resta" title="XP que resta">
+    <button class="btn sm ghost" data-bx="${i}" aria-label="Quitar ${esc(b.name)}">✕</button>
+    <span></span><select class="in" data-bf="pillar" data-i="${i}" aria-label="Pilar">${pillarOptions(b.pillar)}</select>
+  </div>`).join(""):`<p class="note">No tienes hábitos malos. Agrega uno.</p>`;
+}
+$("#adminBad").addEventListener("input",e=>{const f=e.target.dataset.bf,i=e.target.dataset.i;if(f==null)return;draftBad[i][f]=f==="xp"?parseInt(e.target.value)||0:e.target.value});
+$("#adminBad").addEventListener("change",e=>{const f=e.target.dataset.bf,i=e.target.dataset.i;if(f==="pillar")draftBad[i].pillar=e.target.value});
+$("#adminBad").addEventListener("click",e=>{const b=e.target.closest("[data-bx]");if(!b)return;draftBad.splice(+b.dataset.bx,1);renderAdminBad()});
+$("#btnAdminBadAdd").addEventListener("click",()=>{draftBad.push({id:"b"+uid(),name:"",emoji:"⚠️",xp:15,pillar:state.pillars[0]?state.pillars[0].id:""});renderAdminBad();const ins=$("#adminBad").querySelectorAll('[data-bf="name"]');ins[ins.length-1].focus()});
+$("#btnAdminBadSave").addEventListener("click",()=>{
+  const clean=draftBad.filter(b=>b.name.trim()).map(b=>({...b,name:b.name.trim(),emoji:(b.emoji||"").trim()||"⚠️",xp:Math.max(1,Math.min(200,parseInt(b.xp)||15))}));
+  state.badHabits=clean;persist();renderAll();draftBad=clean.map(b=>({...b}));renderAdminBad();toast(`Hábitos malos guardados (${clean.length})`);
+});
+function openAdmin(){draftBad=state.badHabits.map(b=>({...b}));renderAdminBad();$("#adminXp").value=state.xp;$("#adminBadges").innerHTML=ACH.map(a=>`<label><input type="checkbox" data-ach="${a.id}" ${state.achievements[a.id]?"checked":""}> ${a.em} ${esc(a.name)}</label>`).join("");if(!$("#dlgAdmin").open)$("#dlgAdmin").showModal()}
 $("#btnSetXp").addEventListener("click",()=>{const v=Math.max(0,parseInt($("#adminXp").value)||0);const before=levelInfo(state.xp).lvl;xpAdjustDay(dayKey(),v-state.xp);state.xp=v;persist();renderAll(true);toast(`XP actualizado a ${fmtNum(v)}`);const after=levelInfo(v).lvl;if(after>before){$("#dlgAdmin").close();levelUp(after)}});
 $("#adminBadges").addEventListener("change",e=>{const id=e.target.dataset.ach;if(!id)return;if(e.target.checked)state.achievements[id]=Date.now();else delete state.achievements[id];persist();renderAll()});
 $("#btnUnlockAll").addEventListener("click",()=>{ACH.forEach(a=>{if(!state.achievements[a.id])state.achievements[a.id]=Date.now()});persist();renderAll();openAdmin();sfx("badge");toast("Todos los logros desbloqueados")});
@@ -1398,6 +1497,7 @@ $("#btnReset2").addEventListener("click",async()=>{if(await resetProgress())$("#
 
 
 /* ---------- Nube (Supabase): sincroniza tu progreso entre dispositivos ---------- */
+addEventListener("unhandledrejection",e=>{const m=String(e.reason&&(e.reason.message||e.reason)||"");if(/failed to fetch|networkerror|load failed/i.test(m)){e.preventDefault();if(typeof setCloud==="function"&&sbUser)setCloud("error")}});
 let sb=null,sbUser=null,cloudTimer=null,cloudBusy=false,cloudAgain=false,cloudStatus="off";
 function setCloud(s){cloudStatus=s;renderAccount()}
 async function cloudSave(){
@@ -1452,11 +1552,15 @@ function authError(e){const m=(e&&e.message||"").toLowerCase();
 function initCloud(){
   try{
     if(!window.supabase||!/^https:\/\//.test(SUPABASE_URL)||SUPABASE_ANON_KEY.length<30)return;
+    // Dentro de Claude no se permiten conexiones a bases externas: ahí se usa el guardado propio de Claude
+    const host=location.hostname||"";
+    if(window.claude||/(^|\.)claude\.ai$|claudeusercontent|anthropic/i.test(host))return;
     sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
     sb.auth.onAuthStateChange((ev,session)=>{
       const u=session&&session.user||null,changed=(u&&u.id)!==(sbUser&&sbUser.id);
       sbUser=u;
       if(u&&changed)setTimeout(cloudLoad,0);
+      if(ev==="PASSWORD_RECOVERY")setTimeout(()=>{renderAccount();if(!$("#dlgAccount").open)$("#dlgAccount").showModal();passMsg("Escribe tu nueva contraseña y toca Cambiar contraseña.");$("#newPass").focus()},50);
       if(!u)cloudStatus="off";
       renderAccount();
     });
@@ -1465,7 +1569,24 @@ function initCloud(){
     addEventListener("online",()=>{if(sbUser)cloudSave()});
   }catch(e){sb=null;console.warn(e)}
 }
-$("#btnAccount").addEventListener("click",()=>{accMsg("");renderAccount();$("#dlgAccount").showModal()});
+function passMsg(t,bad){const m=$("#passMsg");m.hidden=!t;m.textContent=t||"";m.style.color=bad?"var(--coral)":"var(--mint)"}
+$("#btnChangePass").addEventListener("click",async()=>{
+  const p1=$("#newPass").value,p2=$("#newPass2").value;
+  if(p1.length<6){passMsg("La contraseña debe tener al menos 6 caracteres.",true);$("#newPass").focus();return}
+  if(p1!==p2){passMsg("Las contraseñas no coinciden.",true);$("#newPass2").focus();return}
+  const b=$("#btnChangePass");b.disabled=true;passMsg("Cambiando…");
+  try{const{error}=await sb.auth.updateUser({password:p1});if(error)throw error;$("#newPass").value="";$("#newPass2").value="";passMsg("Listo, tu contraseña se cambió.");toast("🔑 Contraseña actualizada")}
+  catch(e){const m=(e&&e.message||"").toLowerCase();passMsg(m.includes("different")?"La nueva contraseña debe ser distinta a la actual.":m.includes("characters")||m.includes("at least")?"La contraseña debe tener al menos 6 caracteres.":m.includes("reauth")||m.includes("recent")?"Por seguridad, cierra sesión, vuelve a entrar e inténtalo de nuevo.":"No se pudo cambiar. Revisa tu internet e intenta de nuevo.",true)}
+  finally{b.disabled=false}
+});
+$("#accForgot").addEventListener("click",async()=>{
+  const email=$("#accEmail").value.trim();
+  if(!email){accMsg("Escribe tu correo arriba y vuelve a tocar “¿Olvidaste tu contraseña?”.",true);$("#accEmail").focus();return}
+  accMsg("Enviando correo…");
+  try{const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});if(error)throw error;accMsg("Te enviamos un correo. Abre el enlace y aquí mismo podrás poner tu nueva contraseña.")}
+  catch(e){accMsg((e&&e.message||"").toLowerCase().includes("rate")?"Ya te enviamos un correo hace poco. Espera un minuto e intenta de nuevo.":"No se pudo enviar el correo. Revisa que esté bien escrito.",true)}
+});
+$("#btnAccount").addEventListener("click",()=>{accMsg("");passMsg("");$("#newPass").value="";$("#newPass2").value="";renderAccount();$("#dlgAccount").showModal()});
 async function doAuth(kind){
   const email=$("#accEmail").value.trim(),password=$("#accPass").value;
   if(!email){$("#accEmail").focus();return}if(password.length<6){accMsg("La contraseña debe tener al menos 6 caracteres.",true);$("#accPass").focus();return}
